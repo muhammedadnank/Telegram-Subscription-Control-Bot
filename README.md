@@ -189,6 +189,33 @@ Day 30 → Auto kick (ban + immediate unban) → Subscription marked expired
    ```
 5. Deploy the application.
 
+### 🐳 Docker Deployment
+
+You can run the bot containerized using Docker or Docker Compose:
+
+#### Option A: Docker Compose (Recommended)
+
+1. Ensure your `.env` file is configured correctly in the project root.
+2. Spin up the container in the background:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Monitor logs:
+   ```bash
+   docker compose logs -f
+   ```
+
+#### Option B: Docker CLI
+
+1. Build the Docker image:
+   ```bash
+   docker build -t telegram-subscription-bot .
+   ```
+2. Run the container using the environment file:
+   ```bash
+   docker run -d --name subscription-bot --env-file .env -v $(pwd)/bot.log:/app/bot.log telegram-subscription-bot
+   ```
+
 ---
 
 ## 📄 Documentation
