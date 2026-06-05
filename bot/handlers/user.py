@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_ID
 from database import users as users_db, subscriptions as subs_db, courses as courses_db
-from keyboards.user_kb import register_kb, home_kb, status_back_kb
+from keyboards.user_kb import register_kb, home_kb, status_back_kb, available_courses_kb, course_subscribe_kb
 
 router = Router()
 
@@ -285,6 +285,59 @@ async def cb_user_home(callback: CallbackQuery):
         await callback.message.edit_text(text, reply_markup=home_kb(has_history=has_history))
     except Exception:
         pass
+    await callback.answer()
+
+
+@router.callback_query(F.data == "user_available_courses")
+async def cb_user_available_courses(callback: CallbackQuery):
+    courses = await courses_db.get_all_courses(active_only=True)
+    if not courses:
+        await callback.message.edit_text(
+            "🛍 <b>Available Courses</b>\n\n"
+            "No courses are currently available. Please check back later!",
+            reply_markup=status_back_kb()
+        )
+        await callback.answer()
+        return
+
+    text = (
+        "🛍 <b>Available Courses</b>\n\n"
+        "Select a course below to view its price, duration, and subscribe:"
+    )
+    await callback.message.edit_text(text, reply_markup=available_courses_kb(courses))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("user_course_"))
+async def cb_user_view_course(callback: CallbackQuery):
+    course_id = callback.data.split("_")[-1]
+    course = await courses_db.get_course(course_id)
+    if not course:
+        await callback.answer("Course not found.", show_alert=True)
+        return
+
+    try:
+        admin_chat = await callback.bot.get_chat(ADMIN_ID)
+        admin_username = admin_chat.username
+        if admin_username:
+            admin_url = f"https://t.me/{admin_username}"
+        else:
+            admin_url = f"tg://user?id={ADMIN_ID}"
+    except Exception as e:
+        logging.warning(f"Could not fetch admin username: {e}")
+        admin_url = f"tg://user?id={ADMIN_ID}"
+
+    text = (
+        f"📚 <b>Course Details</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"<b>Name:</b> {course['name']}\n"
+        f"<b>Price:</b> ₹{course['price']}\n"
+        f"<b>Duration:</b> {course.get('duration_days', 30)} days\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"To subscribe to this course, please contact the admin by clicking the button below:"
+    )
+    
+    await callback.message.edit_text(text, reply_markup=course_subscribe_kb(admin_url))
     await callback.answer()
 
 

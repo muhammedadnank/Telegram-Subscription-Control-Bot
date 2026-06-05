@@ -14,6 +14,9 @@ def home_kb(has_history: bool = False) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="📊 My Status", callback_data="user_status"),
             InlineKeyboardButton(text="🔄 Refresh", callback_data="user_refresh")
+        ],
+        [
+            InlineKeyboardButton(text="🛍 Available Courses", callback_data="user_available_courses")
         ]
     ]
     if has_history:
@@ -25,4 +28,21 @@ def home_kb(has_history: bool = False) -> InlineKeyboardMarkup:
 def status_back_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Back", callback_data="user_home")]
+    ])
+
+def available_courses_kb(courses: list) -> InlineKeyboardMarkup:
+    keyboard = []
+    for course in courses:
+        keyboard.append([
+            InlineKeyboardButton(text=course["name"], callback_data=f"user_course_{course['_id']}")
+        ])
+    keyboard.append([
+        InlineKeyboardButton(text="🔙 Back", callback_data="user_home")
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def course_subscribe_kb(admin_url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Contact Admin to Subscribe", url=admin_url)],
+        [InlineKeyboardButton(text="🔙 Back", callback_data="user_available_courses")]
     ])
