@@ -22,6 +22,13 @@ router = Router()
 
 def admin_only(func):
     """Decorator to restrict handlers to ADMIN_ID."""
+    import inspect
+    import functools
+
+    sig = inspect.signature(func)
+    has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+
+    @functools.wraps(func)
     async def wrapper(event, *args, **kwargs):
         user_id = event.from_user.id if (event and event.from_user) else None
         if user_id != ADMIN_ID:
@@ -30,8 +37,14 @@ def admin_only(func):
             elif isinstance(event, Message):
                 await event.answer("⛔ Unauthorized. This command is for admins only.")
             return
-        return await func(event, *args, **kwargs)
+        
+        if has_var_keyword:
+            return await func(event, *args, **kwargs)
+        
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        return await func(event, *args, **filtered_kwargs)
     return wrapper
+
 
 
 # ── /admin entry ────────────────────────────────────────────────────────────
