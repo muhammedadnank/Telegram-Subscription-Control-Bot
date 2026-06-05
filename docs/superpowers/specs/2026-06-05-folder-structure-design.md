@@ -29,10 +29,10 @@ Move and rename the following files from the root directory into the `docs/` dir
 
 ## 3. Project Scaffolding Structure
 
-Create the following folder and file structure under `subscription_bot/` relative to the project root:
+Create the following folder and file structure under `bot/` relative to the project root:
 
 ```
-subscription_bot/
+bot/
 ├── __init__.py
 ├── bot.py                  # Entry point
 ├── config.py               # Env vars & constants
