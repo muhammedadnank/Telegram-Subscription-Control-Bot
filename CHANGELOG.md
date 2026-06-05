@@ -118,6 +118,17 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.9.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 15 (Edge Case Hardening, Error Handling, and Logging)**:
+  - Added a global error handler registered on the aiogram dispatcher to catch and log all unhandled runtime exceptions.
+  - Automatically notifies the administrator (`ADMIN_ID`) when an unhandled error occurs, facilitating real-time monitoring and debugging.
+  - Configured a stale callback query guard to catch and gracefully silence `TelegramBadRequest` warnings (such as `message is not modified`).
+  - Added a global `/cancel` command handler (and a case-insensitive "cancel" text filter) to let both admins and users abort any active FSM state at any time.
+
+---
+
 ## [1.0.0] — Unreleased (In Development)
 
 ### Added
