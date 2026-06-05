@@ -129,7 +129,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.0.0] — Unreleased (In Development)
+## [1.0.0] — 2026-06-05
 
 ### Added
 - User registration via `/start` — auto-collects name, username, profile photo
@@ -163,6 +163,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Admin-only guard on all admin handlers
 - HTML parse mode set globally via `DefaultBotProperties`
 - Structured logging to console and `bot.log` file
+- **User Dashboard & Discovery Features**:
+  - Implemented self-service subscription status viewing ("My Status").
+  - Added historical subscription logs and total payment tracking ("My History").
+  - Integrated a refresh option to let users check status on-demand.
+  - Implemented the available courses directory ("Available Courses") listing all active courses with prices, durations, and images.
+  - Added direct redirect to admin for manual subscription requests with resolved URL (`https://t.me/username` or `tg://user?id=ADMIN_ID`).
+- **Containerization & Deployment**:
+  - Created standard `Dockerfile` and `docker-compose.yml` for multi-container deployment (Bot + MongoDB).
+  - Updated configuration setup and added local development environment instructions to `README.md`.
 
 ### Database
 - `users` collection with `is_banned` flag
