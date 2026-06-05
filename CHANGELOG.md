@@ -30,8 +30,52 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.0.0] — Unreleased (In Development)
+## [0.2.0] — 2026-06-05
 
+### Added
+- Implemented **Phase 2 (Database CRUD & User Keyboards)**:
+  - Database helper CRUD functions for `users.py`, `subscriptions.py`, and `courses.py`.
+  - Registration FSM, Registration keyboards, and registration handlers in `user_kb.py` and `user.py`.
+  - Global middleware `BannedUserMiddleware` to intercept and restrict blocked users.
+  - Implemented detailed test verify script `verify_phase_2.py` with mock MongoDB collection layers.
+
+---
+
+## [0.3.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 3 (Admin Panel Entry & Users Menu)**:
+  - Added new database helper functions to calculate revenue reports, expiring subscriptions, active user IDs, and expiring soon notifications in `subscriptions.py`.
+  - Added admin keyboard layouts (`admin_entry_kb`, `admin_panel_kb`, `users_menu_kb`, `user_quick_kb`, `profile_kb`, `pagination_kb`) in `admin_kb.py`.
+  - Added admin callback handlers in `admin.py` to route `/admin` command, admin menus, active/expired/banned user lists, user profile inspector, and subscription history overview.
+  - Developed and verified all updates using `verify_phase_3.py` script.
+
+---
+
+## [0.4.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 4 (Give Access Flow)**:
+  - Added invite link creation helper (`create_one_time_link`) and link revocation (`revoke_link`) in `bot/utils/invite.py`.
+  - Expanded admin keyboards (`course_select_kb`, `confirm_give_kb`) in `bot/keyboards/admin_kb.py` to support target course selection and grant confirmations.
+  - Implemented Give Access FSM callback routing (`cb_give_select_course`, `cb_confirm_give`) in `bot/handlers/admin.py` to prompt admins, display price and duration summaries, check for existing subscriptions, generate one-time invite links, create pending subscriptions in MongoDB, and notify the user via DM.
+  - Fixed missing `timedelta` import in `bot/handlers/admin.py`.
+  - Created a mock unit test suite `verify_phase_4.py` to validate all FSM steps and warning triggers.
+
+---
+
+## [0.5.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 5 (Join Detection & Activation)**:
+  - Added `get_active_subscription_by_channel` to `bot/database/subscriptions.py` to look up subscriptions for channel leaving events.
+  - Registered `on_user_join` and `on_user_leave` handlers using `JOIN_TRANSITION` and `LEAVE_TRANSITION` on `chat_member` updates in `bot/handlers/admin.py`.
+  - Implemented auto-activation on join (`pending_join` → `active`), expiration timestamp calculation, user welcome messages, admin join notifications, and automated logging of manual leave details (`left_at` and `days_used` metrics).
+  - Created mock verification test script `verify_phase_5.py` to check all join/leave transition paths and database updates.
+
+---
+
+## [1.0.0] — Unreleased (In Development)
 
 ### Added
 - User registration via `/start` — auto-collects name, username, profile photo
