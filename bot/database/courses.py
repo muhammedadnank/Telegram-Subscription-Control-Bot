@@ -1,0 +1,3 @@
+"""
+Course CRUD database operations.
+"""
