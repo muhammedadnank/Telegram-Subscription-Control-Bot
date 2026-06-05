@@ -12,6 +12,7 @@ from aiogram.enums import ParseMode
 from config import BOT_TOKEN, MONGO_URI, DB_NAME
 from database.db import connect_db, close_db, create_indexes, init_settings
 from handlers import user, admin
+from middlewares.banned import BannedUserMiddleware
 from scheduler.tasks import setup_scheduler
 
 logging.basicConfig(
@@ -30,6 +31,10 @@ bot = Bot(
 
 storage = MongoStorage.from_url(MONGO_URI, db_name=DB_NAME)
 dp = Dispatcher(storage=storage)
+
+# Register middlewares
+dp.message.outer_middleware(BannedUserMiddleware())
+dp.callback_query.outer_middleware(BannedUserMiddleware())
 
 dp.include_router(user.router)
 dp.include_router(admin.router)
