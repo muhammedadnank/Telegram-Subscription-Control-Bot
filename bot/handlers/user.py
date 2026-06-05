@@ -284,7 +284,11 @@ async def cb_user_home(callback: CallbackQuery):
     try:
         await callback.message.edit_text(text, reply_markup=home_kb(has_history=has_history))
     except Exception:
-        pass
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=home_kb(has_history=has_history))
     await callback.answer()
 
 
@@ -292,11 +296,15 @@ async def cb_user_home(callback: CallbackQuery):
 async def cb_user_available_courses(callback: CallbackQuery):
     courses = await courses_db.get_all_courses(active_only=True)
     if not courses:
-        await callback.message.edit_text(
-            "🛍 <b>Available Courses</b>\n\n"
-            "No courses are currently available. Please check back later!",
-            reply_markup=status_back_kb()
-        )
+        text = "🛍 <b>Available Courses</b>\n\nNo courses are currently available. Please check back later!"
+        try:
+            await callback.message.edit_text(text, reply_markup=status_back_kb())
+        except Exception:
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
+            await callback.message.answer(text, reply_markup=status_back_kb())
         await callback.answer()
         return
 
@@ -304,7 +312,14 @@ async def cb_user_available_courses(callback: CallbackQuery):
         "🛍 <b>Available Courses</b>\n\n"
         "Select a course below to view its price, duration, and subscribe:"
     )
-    await callback.message.edit_text(text, reply_markup=available_courses_kb(courses))
+    try:
+        await callback.message.edit_text(text, reply_markup=available_courses_kb(courses))
+    except Exception:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=available_courses_kb(courses))
     await callback.answer()
 
 
@@ -337,7 +352,27 @@ async def cb_user_view_course(callback: CallbackQuery):
         f"To subscribe to this course, please contact the admin by clicking the button below:"
     )
     
-    await callback.message.edit_text(text, reply_markup=course_subscribe_kb(admin_url))
+    kb = course_subscribe_kb(admin_url)
+    photo_id = course.get("photo_file_id")
+    if photo_id:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer_photo(
+            photo=photo_id,
+            caption=text,
+            reply_markup=kb
+        )
+    else:
+        try:
+            await callback.message.edit_text(text, reply_markup=kb)
+        except Exception:
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
+            await callback.message.answer(text, reply_markup=kb)
     await callback.answer()
 
 
