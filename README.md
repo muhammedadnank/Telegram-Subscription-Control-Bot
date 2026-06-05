@@ -1,62 +1,71 @@
 # 🤖 Telegram Subscription Control Bot
 
-A single-admin Telegram bot for managing paid course subscriptions. Handles invite link generation, auto-reminders, and expiry kicks — all from an inline keyboard panel.
+A single-admin Telegram bot for managing paid course subscriptions. Handles invite link generation, auto-reminders, and expiry kicks — all from a comprehensive, secure inline keyboard dashboard.
 
 ---
 
 ## ✨ Features
 
 - 📝 **Auto Registration** — Collects user info from Telegram automatically
-- 🎓 **Give Access** — One-time invite links per user per course
-- 🔔 **Smart Reminders** — Configurable 48h & 12h expiry warnings
-- ⏱ **Auto Kick** — Removes users from channel on Day 30
-- 📊 **Revenue Reports** — Monthly course-wise income breakdown
-- 📢 **Broadcast** — Message all users or specific course subscribers
-- 🔍 **Search** — Find users by name or @username
-- 🚫 **Ban Management** — Block users from bot access
-- ⚙️ **Settings Panel** — Configure invite expiry & warning hours from bot
+- 🎓 **Give Access** — Generates one-time invite links per user per course
+- 🔔 **Smart Reminders** — Configurable 48h & 12h expiry warning notifications
+- ⏱ **Auto Kick** — Removes users from the channel on Day 30 (via APScheduler)
+- 📊 **Revenue Reports** — Monthly course-wise income breakdown (New vs Renewal)
+- 📢 **Broadcast** — Target message all active users, specific course subscribers, or direct DM single users
+- 🔍 **Search** — Search registered users by name or @username
+- 🚫 **Ban Management** — Block/unblock users from interacting with the bot
+- ⚙️ **Settings Panel** — Configure invite expiry & warning hours dynamically from the bot
+- 🛡 **Global Exception Handler** — Real-time admin alerting and safe callback error handling
 
 ---
 
 ## 🛠 Tech Stack
 
 | Package | Version | Purpose |
-|---|---|---|
-| `aiogram` | 3.7.0 | Telegram Bot framework |
-| `motor` | 3.4.0 | Async MongoDB driver |
-| `apscheduler` | 3.10.4 | Scheduled jobs (reminders, kicks) |
-| `python-dotenv` | 1.0.0 | Environment variables |
-| `pymongo` | 4.6.0 | MongoDB (FSM storage) |
+| :--- | :--- | :--- |
+| **`aiogram`** | 3.7.0 | Telegram Bot framework |
+| **`motor`** | 3.4.0 | Async MongoDB driver |
+| **`apscheduler`** | 3.10.4 | Scheduled background jobs (reminders, kicks) |
+| **`python-dotenv`** | 1.0.0 | Environment variables management |
+| **`pymongo`** | 4.6.0 | MongoDB driver (required for FSM storage) |
 
-**Python:** 3.11+  
-**Database:** MongoDB Atlas
+- **Python:** 3.11+  
+- **Database:** MongoDB Atlas (Persistent storage)
 
 ---
 
 ## 📁 Project Structure
 
 ```
-bot/
-├── bot.py                  # Entry point
-├── config.py               # Env vars & constants
-├── database/
-│   ├── db.py               # Connection, indexes, settings init
-│   ├── users.py            # User CRUD
-│   ├── courses.py          # Course CRUD
-│   └── subscriptions.py    # Subscription CRUD
-├── handlers/
-│   ├── user.py             # /start, /status
-│   └── admin.py            # /admin, all admin callbacks
-├── keyboards/
-│   ├── user_kb.py          # User inline keyboards
-│   └── admin_kb.py         # Admin inline keyboards
-├── scheduler/
-│   └── tasks.py            # Reminder, kick & cleanup jobs
-├── states/
-│   └── fsm.py              # FSM state groups
-├── utils/
-│   └── invite.py           # Invite link helpers
-├── .env
+Telegram-Subscription-Control-Bot/
+├── bot/
+│   ├── bot.py                  # Main entry point
+│   ├── config.py               # Environment variables & constants
+│   ├── database/
+│   │   ├── db.py               # Database connections, indexes, settings init
+│   │   ├── users.py            # User CRUD operations
+│   │   ├── courses.py          # Course CRUD operations
+│   │   └── subscriptions.py    # Subscription CRUD operations
+│   ├── handlers/
+│   │   ├── user.py             # User handlers (/start, /status, /cancel)
+│   │   └── admin.py            # Admin handlers (/admin, all panel callbacks)
+│   ├── keyboards/
+│   │   ├── user_kb.py          # User inline keyboards
+│   │   └── admin_kb.py         # Admin inline keyboards
+│   ├── scheduler/
+│   │   └── tasks.py            # Reminder, kick & cleanup background jobs
+│   ├── states/
+│   │   └── fsm.py              # Finite State Machine state definitions
+│   └── utils/
+│       └── invite.py           # Telegram invite link helpers
+├── docs/
+│   ├── AI_WORKFLOW.md          # Guidelines & workflow for AI development
+│   ├── BACKEND.md              # 15-phase implementation plan & schema details
+│   ├── PRD.md                  # Product Requirements Document
+│   ├── TRD.md                  # Technical Requirements Document
+│   └── UIUX.md                 # UI/UX Specifications & text templates
+├── verify_phase/               # Regression verification scripts (Phases 1-9)
+├── .env.example
 ├── requirements.txt
 ├── README.md
 └── CHANGELOG.md
@@ -64,18 +73,22 @@ bot/
 
 ---
 
-## ⚙️ Setup
+## ⚙️ Setup & Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourname/subscription-bot.git
-cd subscription-bot
+git clone https://github.com/muhammedadnank/Telegram-Subscription-Control-Bot.git
+cd Telegram-Subscription-Control-Bot
 ```
 
 ### 2. Install dependencies
 
+Ensure you are using Python 3.11+ and create a virtual environment first:
+
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -91,24 +104,23 @@ DB_NAME=subscription_bot
 ```
 
 | Variable | Description |
-|---|---|
+| :--- | :--- |
 | `BOT_TOKEN` | From [@BotFather](https://t.me/BotFather) |
 | `ADMIN_ID` | Your Telegram user ID |
-| `MONGO_URI` | MongoDB Atlas connection string |
+| `MONGO_URI` | MongoDB connection string |
 | `DB_NAME` | Database name (default: `subscription_bot`) |
 
 ### 4. Add bot to course channels
 
-Add the bot as **admin** to every course channel with these permissions:
-
+Add the bot as an **administrator** to every course channel with these permissions:
 - ✅ Invite users via link
-- ✅ Restrict members
-- ✅ Manage chat
+- ✅ Restrict members (required for kick action)
+- ✅ Manage chat (required for link revocation)
 
-### 5. Run the bot
+### 5. Run the bot locally
 
 ```bash
-python bot.py
+python bot/bot.py
 ```
 
 ---
@@ -116,29 +128,29 @@ python bot.py
 ## 🗄 Database Collections
 
 | Collection | Purpose |
-|---|---|
-| `users` | Registered users |
-| `courses` | Course definitions |
-| `subscriptions` | Subscription records |
-| `settings` | Bot configuration |
+| :--- | :--- |
+| **`users`** | Registered user accounts, including profile picture files & ban status |
+| **`courses`** | Course definitions, custom pricing, duration, and Telegram channel links |
+| **`subscriptions`** | Subscription records, lifecycle states (`pending_join`, `active`, `expired`, `kicked`) |
+| **`settings`** | Global bot settings (default invite link expiry & warning hours) |
 
 ---
 
 ## 🔄 Subscription Lifecycle
 
 ```
-Admin gives access
+Admin grants course access
     ↓
 One-time invite link generated (expires in N hours)
     ↓
-Link sent to user
+Invite link sent to user
     ↓
-User joins channel → subscription activated
+User joins channel → Subscription activated (expires in N days)
     ↓
-48h before expiry → reminder sent
-12h before expiry → final warning sent
+48h before expiry → Warning reminder notification sent
+12h before expiry → Final warning reminder notification sent
     ↓
-Day 30 → auto kick → subscription expired
+Day 30 → Auto kick (ban + immediate unban) → Subscription marked expired
 ```
 
 ---
@@ -146,22 +158,21 @@ Day 30 → auto kick → subscription expired
 ## ⏰ Scheduler Jobs
 
 | Job | Interval | Purpose |
-|---|---|---|
-| `check_reminders` | Every 60 min | Send 48h & 12h warnings |
-| `check_expiry_kicks` | Every 15 min | Kick expired subscriptions |
-| `cleanup_pending_joins` | Every 60 min | Mark unused invite links as expired |
+| :--- | :--- | :--- |
+| `check_reminders` | Every 60 min | Sends warning DMs to users with expiring access |
+| `check_expiry_kicks` | Every 15 min | Kicks expired users and revokes invite links |
+| `cleanup_pending_joins` | Every 60 min | Marks unused invite links as expired after threshold |
 
 ---
 
 ## 📋 Subscription Statuses
 
 | Status | Meaning |
-|---|---|
-| `pending_join` | Invite link sent, user not yet joined |
-| `active` | User joined, subscription running |
-| `expired` | Subscription ended (auto-kick or unused link) |
-| `kicked` | Manually kicked by admin |
-| `extended` | Reserved for future use |
+| :--- | :--- |
+| `pending_join` | Invite link generated and sent; user has not yet clicked it |
+| `active` | User joined the channel; subscription is running |
+| `expired` | Subscription ended naturally or invite link expired before joining |
+| `kicked` | Manually kicked from the channel by the administrator |
 
 ---
 
@@ -169,26 +180,26 @@ Day 30 → auto kick → subscription expired
 
 ### Koyeb / Render
 
-1. Push code to GitHub
-2. Connect repo to Koyeb or Render
-3. Set environment variables in platform dashboard
-4. Set start command: `python bot.py`
-5. Deploy
-
-### Keep-Alive
-
-For free-tier platforms that spin down on inactivity, add a simple HTTP keep-alive endpoint or use UptimeRobot to ping the service.
+1. Push the repository to GitHub.
+2. Link the repository to Koyeb or Render.
+3. Configure the environment variables (`BOT_TOKEN`, `ADMIN_ID`, `MONGO_URI`, `DB_NAME`) in the platform's dashboard.
+4. Set the start command to:
+   ```bash
+   python bot/bot.py
+   ```
+5. Deploy the application.
 
 ---
 
 ## 📄 Documentation
 
 | Document | Description |
-|---|---|
-| [PRD](docs/PRD.md) | Product Requirements Document |
-| [TRD](docs/TRD.md) | Technical Requirements Document |
-| [UI/UX](docs/UIUX.md) | UI/UX Design Document |
-| [Backend Plan](docs/BACKEND.md) | Schema & Implementation Plan |
+| :--- | :--- |
+| **[PRD](docs/PRD.md)** | Product Requirements Document |
+| **[TRD](docs/TRD.md)** | Technical Requirements Document |
+| **[UI/UX Specifications](docs/UIUX.md)** | UI/UX specifications, layouts, and copy templates |
+| **[Backend Implementation Plan](docs/BACKEND.md)** | Schema design & 15-phase backend roadmap |
+| **[AI Workflow Guidelines](docs/AI_WORKFLOW.md)** | AI developer guidelines, boundaries, and safety checks |
 
 ---
 
