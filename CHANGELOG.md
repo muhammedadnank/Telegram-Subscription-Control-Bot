@@ -15,9 +15,23 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Google Drive subscription export
 - Web dashboard (admin UI)
 
+## [0.1.0] — 2026-06-05
+
+### Added
+- Reorganized bot folder structure, moving all documentation to the dedicated `docs/` folder.
+- Scaffolded Python project layout under the `bot/` directory with package subdirectories.
+- Configured python virtual environment (`.venv`, `requirements.txt`, `.gitignore`, `.env.example`).
+- Implemented **Phase 1**:
+  - Configuration settings loader and variable validator in `bot/config.py`.
+  - MongoDB connection, auto-indexing logic, and default settings initializer in `bot/database/db.py`.
+  - Main bot application runner with FSM persistence (`MongoStorage`) and polling setup in `bot/bot.py`.
+  - Basic handler and scheduler stubs for user, admin, and background tasks.
+  - Verification test script (`verify_phase_1.py`) to validate configuration parsing and import paths.
+
 ---
 
 ## [1.0.0] — Unreleased (In Development)
+
 
 ### Added
 - User registration via `/start` — auto-collects name, username, profile photo
