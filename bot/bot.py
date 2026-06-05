@@ -9,11 +9,13 @@ from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from config import BOT_TOKEN, MONGO_URI, DB_NAME
+from config import BOT_TOKEN, MONGO_URI, DB_NAME, ADMIN_ID
 from database.db import connect_db, close_db, create_indexes, init_settings
 from handlers import user, admin
 from middlewares.banned import BannedUserMiddleware
 from scheduler.tasks import setup_scheduler
+from aiogram.types import ErrorEvent
+from aiogram.exceptions import TelegramBadRequest
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,8 +38,27 @@ dp = Dispatcher(storage=storage)
 dp.message.outer_middleware(BannedUserMiddleware())
 dp.callback_query.outer_middleware(BannedUserMiddleware())
 
+# Global Error Handler
+@dp.errors()
+async def error_handler(event: ErrorEvent):
+    exception = event.exception
+    if isinstance(exception, TelegramBadRequest) and "message is not modified" in str(exception):
+        logging.warning("Stale callback click: message not modified")
+        return True
+    
+    logging.exception(f"Unhandled exception: {exception}")
+    try:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"🚨 <b>Unhandled Exception occurred!</b>\n\n<code>{exception}</code>"
+        )
+    except Exception as e:
+        logging.error(f"Failed to send error alert to admin: {e}")
+    return True
+
 dp.include_router(user.router)
 dp.include_router(admin.router)
+
 
 
 async def on_startup():

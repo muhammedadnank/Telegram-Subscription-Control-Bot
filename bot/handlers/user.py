@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 import logging
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_ID
 from database import users as users_db, subscriptions as subs_db, courses as courses_db
@@ -111,3 +112,16 @@ async def cb_register(callback: CallbackQuery):
         logging.error(f"Failed to notify admin {ADMIN_ID} of new registration: {e}")
 
     await callback.answer()
+
+
+@router.message(Command("cancel"))
+@router.message(F.text.casefold() == "cancel")
+async def cmd_cancel(message: Message, state: FSMContext):
+    """Global handler to cancel any active FSM state."""
+    current_state = await state.get_state()
+    if current_state is None:
+        await message.answer("❌ No active state or operation to cancel.")
+        return
+    await state.clear()
+    await message.answer("❌ Current operation cancelled. FSM state cleared.", reply_markup=None)
+
