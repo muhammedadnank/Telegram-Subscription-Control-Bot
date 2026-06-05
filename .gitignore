@@ -2,3 +2,4 @@
 .env
 **/__pycache__/
 *.log
+verify_phase_1.py
