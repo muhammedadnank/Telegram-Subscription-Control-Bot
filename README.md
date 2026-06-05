@@ -36,7 +36,7 @@ A single-admin Telegram bot for managing paid course subscriptions. Handles invi
 ## 📁 Project Structure
 
 ```
-subscription_bot/
+bot/
 ├── bot.py                  # Entry point
 ├── config.py               # Env vars & constants
 ├── database/
