@@ -33,8 +33,10 @@ async def cmd_start(message: Message):
     if not user:
         # New user
         await message.answer(
-            "👋 <b>Welcome!</b>\n\n"
-            "Register below to get started.",
+            "👋 <b>Welcome to Subscription Control Bot!</b>\n\n"
+            "Access exclusive course content through this bot. "
+            "Register below to get started.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━",
             reply_markup=register_kb()
         )
         return
