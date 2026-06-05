@@ -42,9 +42,14 @@ dp.callback_query.outer_middleware(BannedUserMiddleware())
 @dp.errors()
 async def error_handler(event: ErrorEvent):
     exception = event.exception
-    if isinstance(exception, TelegramBadRequest) and "message is not modified" in str(exception):
-        logging.warning("Stale callback click: message not modified")
-        return True
+    if isinstance(exception, TelegramBadRequest):
+        exc_str = str(exception).lower()
+        if "message is not modified" in exc_str:
+            logging.warning("Stale callback click: message not modified")
+            return True
+        if "query is too old" in exc_str or "query id is invalid" in exc_str:
+            logging.warning("Stale callback click: query is too old or invalid")
+            return True
     
     logging.exception(f"Unhandled exception: {exception}")
     try:
