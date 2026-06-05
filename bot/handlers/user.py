@@ -2,6 +2,8 @@
 User commands and callbacks handlers.
 """
 
+import asyncio
+import urllib.parse
 from datetime import datetime, timezone
 import logging
 from aiogram import Router, F
@@ -15,11 +17,21 @@ from keyboards.user_kb import register_kb, home_kb, status_back_kb, available_co
 
 router = Router()
 
+ADMIN_USERNAME_CACHE = None
+
+async def get_courses_for_subs(subs: list) -> dict:
+    course_ids = list(set(str(sub["course_id"]) for sub in subs if sub.get("course_id")))
+    if not course_ids:
+        return {}
+    tasks = [courses_db.get_course(cid) for cid in course_ids]
+    courses = await asyncio.gather(*tasks)
+    return {str(c["_id"]): c for c in courses if c}
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user_id = message.from_user.id
 
-    # Banned check
+    # Banned check - run first
     if await users_db.is_banned(user_id):
         await message.answer(
             "🚫 <b>Access Restricted</b>\n\n"
@@ -28,7 +40,12 @@ async def cmd_start(message: Message):
         )
         return
 
-    user = await users_db.get_user(user_id)
+    # Run DB queries concurrently
+    user, active_subs, history = await asyncio.gather(
+        users_db.get_user(user_id),
+        subs_db.get_active_subscriptions_for_user(user_id),
+        subs_db.get_subscription_history(user_id)
+    )
 
     if not user:
         # New user
@@ -41,9 +58,6 @@ async def cmd_start(message: Message):
         )
         return
 
-    # Returning user
-    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
-    history = await subs_db.get_subscription_history(user_id)
     has_history = len(history) > 0
 
     if not active_subs:
@@ -55,10 +69,11 @@ async def cmd_start(message: Message):
         )
         return
 
-    # Build course summary — requires course name lookup
+    # Build course summary - resolve names concurrently
+    course_map = await get_courses_for_subs(active_subs)
     lines = []
     for sub in active_subs:
-        course = await courses_db.get_course(str(sub["course_id"]))
+        course = course_map.get(str(sub["course_id"]))
         if course:
             days_left = (sub["expires_at"] - datetime.now(timezone.utc)).days
             lines.append(f"• <b>{course['name']}</b> — {max(0, days_left)} days left")
@@ -119,16 +134,19 @@ async def cb_register(callback: CallbackQuery):
 @router.callback_query(F.data == "user_status")
 async def cb_user_status(callback: CallbackQuery):
     user_id = callback.from_user.id
-    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
-    history = await subs_db.get_subscription_history(user_id)
+    active_subs, history = await asyncio.gather(
+        subs_db.get_active_subscriptions_for_user(user_id),
+        subs_db.get_subscription_history(user_id)
+    )
     
     if not active_subs:
         await callback.answer("No active subscriptions found.", show_alert=True)
         return
         
+    course_map = await get_courses_for_subs(active_subs)
     lines = ["📊 <b>My Subscriptions</b>\n"]
     for sub in active_subs:
-        course = await courses_db.get_course(str(sub["course_id"]))
+        course = course_map.get(str(sub["course_id"]))
         if course:
             joined_str = sub["joined_at"].strftime("%b %d, %Y") if sub.get("joined_at") else "N/A"
             expires_str = sub["expires_at"].strftime("%b %d, %Y") if sub.get("expires_at") else "N/A"
@@ -158,13 +176,15 @@ async def cb_user_status(callback: CallbackQuery):
 @router.callback_query(F.data == "user_refresh")
 async def cb_user_refresh(callback: CallbackQuery):
     user_id = callback.from_user.id
-    user = await users_db.get_user(user_id)
+    user, active_subs, history = await asyncio.gather(
+        users_db.get_user(user_id),
+        subs_db.get_active_subscriptions_for_user(user_id),
+        subs_db.get_subscription_history(user_id)
+    )
     if not user:
         await callback.answer("User not found.", show_alert=True)
         return
         
-    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
-    history = await subs_db.get_subscription_history(user_id)
     has_history = len(history) > 0
     
     if not active_subs:
@@ -174,9 +194,10 @@ async def cb_user_refresh(callback: CallbackQuery):
             "Contact admin to get course access."
         )
     else:
+        course_map = await get_courses_for_subs(active_subs)
         lines = []
         for sub in active_subs:
-            course = await courses_db.get_course(str(sub["course_id"]))
+            course = course_map.get(str(sub["course_id"]))
             if course:
                 days_left = max(0, (sub["expires_at"] - datetime.now(timezone.utc)).days) if sub.get("expires_at") else 0
                 lines.append(f"• <b>{course['name']}</b> — {days_left} days left")
@@ -203,9 +224,10 @@ async def cb_user_history(callback: CallbackQuery):
         await callback.answer("No subscription history found.", show_alert=True)
         return
         
+    course_map = await get_courses_for_subs(history)
     lines = ["📋 <b>My History</b>\n"]
     for idx, sub in enumerate(history, 1):
-        course = await courses_db.get_course(str(sub["course_id"]))
+        course = course_map.get(str(sub["course_id"]))
         if course:
             course_name = course["name"]
             amount = sub.get("amount_paid", 0)
@@ -252,13 +274,15 @@ async def cb_user_history(callback: CallbackQuery):
 @router.callback_query(F.data == "user_home")
 async def cb_user_home(callback: CallbackQuery):
     user_id = callback.from_user.id
-    user = await users_db.get_user(user_id)
+    user, active_subs, history = await asyncio.gather(
+        users_db.get_user(user_id),
+        subs_db.get_active_subscriptions_for_user(user_id),
+        subs_db.get_subscription_history(user_id)
+    )
     if not user:
         await callback.answer("User not found.", show_alert=True)
         return
         
-    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
-    history = await subs_db.get_subscription_history(user_id)
     has_history = len(history) > 0
     
     if not active_subs:
@@ -268,9 +292,10 @@ async def cb_user_home(callback: CallbackQuery):
             "Contact admin to get course access."
         )
     else:
+        course_map = await get_courses_for_subs(active_subs)
         lines = []
         for sub in active_subs:
-            course = await courses_db.get_course(str(sub["course_id"]))
+            course = course_map.get(str(sub["course_id"]))
             if course:
                 days_left = max(0, (sub["expires_at"] - datetime.now(timezone.utc)).days) if sub.get("expires_at") else 0
                 lines.append(f"• <b>{course['name']}</b> — {days_left} days left")
@@ -331,15 +356,27 @@ async def cb_user_view_course(callback: CallbackQuery):
         await callback.answer("Course not found.", show_alert=True)
         return
 
-    try:
-        admin_chat = await callback.bot.get_chat(ADMIN_ID)
-        admin_username = admin_chat.username
-        if admin_username:
-            admin_url = f"https://t.me/{admin_username}"
-        else:
-            admin_url = f"tg://user?id={ADMIN_ID}"
-    except Exception as e:
-        logging.warning(f"Could not fetch admin username: {e}")
+    global ADMIN_USERNAME_CACHE
+    if ADMIN_USERNAME_CACHE is None:
+        try:
+            admin_chat = await callback.bot.get_chat(ADMIN_ID)
+            ADMIN_USERNAME_CACHE = admin_chat.username or ""
+        except Exception as e:
+            logging.warning(f"Could not fetch admin username: {e}")
+            ADMIN_USERNAME_CACHE = ""
+
+    message_text = (
+        f"Hello Admin, I would like to subscribe to the course '{course['name']}'.\n\n"
+        f"📚 Course Name: {course['name']}\n"
+        f"💰 Price: ₹{course['price']}\n"
+        f"⏳ Duration: {course.get('duration_days', 30)} days\n"
+        f"🆔 My User ID: {callback.from_user.id}"
+    )
+    encoded_message = urllib.parse.quote(message_text)
+
+    if ADMIN_USERNAME_CACHE:
+        admin_url = f"https://t.me/{ADMIN_USERNAME_CACHE}?text={encoded_message}"
+    else:
         admin_url = f"tg://user?id={ADMIN_ID}"
 
     text = (
