@@ -21,3 +21,11 @@ try:
     ADMIN_ID: int = int(ADMIN_ID_RAW)
 except ValueError:
     raise ValueError("ADMIN_ID must be a valid integer in .env")
+
+LOG_CHANNEL_ID_RAW = os.getenv("LOG_CHANNEL_ID")
+LOG_CHANNEL_ID: int = None
+if LOG_CHANNEL_ID_RAW:
+    try:
+        LOG_CHANNEL_ID = int(LOG_CHANNEL_ID_RAW)
+    except ValueError:
+        raise ValueError("LOG_CHANNEL_ID must be a valid integer in .env")

@@ -13,6 +13,8 @@ from aiogram import Bot
 from database.db import get_settings
 from database import subscriptions as subs_db
 from database import courses as courses_db
+from database import users as users_db
+from utils.logger import log_to_channel
 from config import ADMIN_ID
 
 scheduler = AsyncIOScheduler()
@@ -68,6 +70,21 @@ async def check_reminders(bot: Bot):
             except Exception as e:
                 logging.warning(f"Admin reminder notify failed: {e}")
 
+            # Notify log channel
+            user = await users_db.get_user(sub["user_id"])
+            user_name = user["name"] if user else f"User {sub['user_id']}"
+            username = user["username"] if user else None
+            await log_to_channel(
+                bot,
+                f"🔔 <b>Expiry Warning Sent</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 <b>User:</b> {user_name}" + (f" ({username})" if username else "") + f"\n"
+                f"🆔 <b>Telegram ID:</b> <code>{sub['user_id']}</code>\n"
+                f"📚 <b>Course:</b> {course['name']}\n"
+                f"⏳ <b>Time Remaining:</b> {hours} Hours\n"
+                f"📅 <b>Expiry Date:</b> {expires_str}"
+            )
+
             await subs_db.mark_reminder_sent(str(sub["_id"]), hours)
 
 
@@ -122,6 +139,20 @@ async def check_expiry_kicks(bot: Bot):
             )
         except Exception as e:
             logging.warning(f"Admin expiry notify failed: {e}")
+
+        # Notify log channel
+        user = await users_db.get_user(sub["user_id"])
+        user_name = user["name"] if user else f"User {sub['user_id']}"
+        username = user["username"] if user else None
+        await log_to_channel(
+            bot,
+            f"🔴 <b>Subscription Expired (Kicked)</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>User:</b> {user_name}" + (f" ({username})" if username else "") + f"\n"
+            f"🆔 <b>Telegram ID:</b> <code>{sub['user_id']}</code>\n"
+            f"📚 <b>Course:</b> {course['name']}\n"
+            f"🚫 <b>Action:</b> Removed from channel (expired)"
+        )
 
 
 async def cleanup_pending_joins(bot: Bot):

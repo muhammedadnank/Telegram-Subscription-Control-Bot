@@ -127,6 +127,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   - Configured a stale callback query guard to catch and gracefully silence `TelegramBadRequest` warnings (such as `message is not modified`).
   - Added a global `/cancel` command handler (and a case-insensitive "cancel" text filter) to let both admins and users abort any active FSM state at any time.
 
+## [1.1.0] — 2026-06-05
+
+### Added
+- **Performance Optimization (Concurrency & Caching)**:
+  - Optimized database requests in user handlers using `asyncio.gather` for concurrent lookups.
+  - Implemented an in-memory `ADMIN_USERNAME_CACHE` to avoid repetitive `get_chat` Telegram API network requests when users view course details.
+- **Log Channel Feature**:
+  - Added optional `LOG_CHANNEL_ID` environment configuration to route administrative audit logs.
+  - Real-time logging of registration events, subscription activations (both user-joins and manual additions), warning notifications, manual leaves, expiries, bans, and unbans.
+  - Added logging of bot startup and shutdown events (online/offline logs) to track the bot's system health.
+- **Enhanced Redirect Link Formatting**:
+  - Implemented automated URL-encoding for course subscription redirect links to prefill the admin direct message with course details, price, duration, and the user's Telegram ID.
+
 ---
 
 ## [1.0.0] — 2026-06-05

@@ -72,9 +72,21 @@ async def on_startup():
     await init_settings()
     setup_scheduler(bot)
     logging.info("Bot started successfully")
+    from utils.logger import log_to_channel
+    await log_to_channel(
+        bot,
+        f"🤖 <b>Bot Started Successfully</b>\n"
+        f"🟢 Bot is now online and active."
+    )
 
 
 async def on_shutdown():
+    from utils.logger import log_to_channel
+    await log_to_channel(
+        bot,
+        f"🤖 <b>Bot Shutting Down</b>\n"
+        f"🔴 Bot is going offline."
+    )
     await close_db()
     logging.info("Bot shut down")
 

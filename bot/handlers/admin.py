@@ -15,6 +15,7 @@ import database.db as db_module
 from database import users as users_db
 from database import subscriptions as subs_db
 from database import courses as courses_db
+from utils.logger import log_to_channel
 from config import ADMIN_ID
 
 router = Router()
@@ -565,6 +566,20 @@ async def on_user_join(event: ChatMemberUpdated):
     except Exception:
         pass
 
+    # Notify log channel
+    await log_to_channel(
+        event.bot,
+        f"✅ <b>Subscription Activated</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 <b>User:</b> {user_name} (@{username or 'None'})\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+        f"📚 <b>Course:</b> {course['name']}\n"
+        f"💰 <b>Amount Paid:</b> ₹{sub.get('amount_paid', course['price'])}\n"
+        f"⏳ <b>Duration:</b> {duration} days\n"
+        f"📅 <b>Expires At:</b> {expires_at}\n"
+        f"🔄 <b>Type:</b> New Subscription"
+    )
+
 
 @router.chat_member(ChatMemberUpdatedFilter(member_status_changed=LEAVE_TRANSITION))
 async def on_user_leave(event: ChatMemberUpdated):
@@ -576,6 +591,22 @@ async def on_user_leave(event: ChatMemberUpdated):
         return
         
     await subs_db.record_manual_leave(str(sub["_id"]))
+
+    user = await users_db.get_user(user_id)
+    user_name = user["name"] if user else event.new_chat_member.user.full_name
+    username = user["username"] if user else event.new_chat_member.user.username
+    course = await courses_db.get_course(str(sub["course_id"]))
+    course_name = course["name"] if course else "Unknown Course"
+
+    await log_to_channel(
+        event.bot,
+        f"🔴 <b>User Left Channel</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 <b>User:</b> {user_name} (@{username or 'None'})\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+        f"📚 <b>Course:</b> {course_name}\n"
+        f"🚫 <b>Action:</b> Manually left chat/channel"
+    )
 
 
 # ── Course Management ──────────────────────────────────────────────────────────
@@ -1428,6 +1459,17 @@ async def cb_ban_user_confirm(callback: CallbackQuery):
     from keyboards.admin_kb import profile_kb
     user = await users_db.get_user(user_id)
     if user:
+        # Notify log channel
+        admin_username = f"@{callback.from_user.username}" if callback.from_user.username else callback.from_user.full_name
+        await log_to_channel(
+            callback.bot,
+            f"🚫 <b>User Banned</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>User:</b> {user['name']}" + (f" ({user['username']})" if user.get('username') else "") + f"\n"
+            f"🆔 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+            f"✍️ <b>Action by Admin:</b> {admin_username}"
+        )
+
         stats = await users_db.get_user_stats(user_id)
         active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
         active_lines = []
@@ -1467,6 +1509,17 @@ async def cb_unban_user(callback: CallbackQuery):
     from keyboards.admin_kb import profile_kb
     user = await users_db.get_user(user_id)
     if user:
+        # Notify log channel
+        admin_username = f"@{callback.from_user.username}" if callback.from_user.username else callback.from_user.full_name
+        await log_to_channel(
+            callback.bot,
+            f"🟢 <b>User Unbanned</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>User:</b> {user['name']}" + (f" ({user['username']})" if user.get('username') else "") + f"\n"
+            f"🆔 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+            f"✍️ <b>Action by Admin:</b> {admin_username}"
+        )
+
         stats = await users_db.get_user_stats(user_id)
         active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
         active_lines = []

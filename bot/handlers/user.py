@@ -14,6 +14,7 @@ from aiogram.fsm.context import FSMContext
 from config import ADMIN_ID
 from database import users as users_db, subscriptions as subs_db, courses as courses_db
 from keyboards.user_kb import register_kb, home_kb, status_back_kb, available_courses_kb, course_subscribe_kb
+from utils.logger import log_to_channel
 
 router = Router()
 
@@ -127,6 +128,17 @@ async def cb_register(callback: CallbackQuery):
         )
     except Exception as e:
         logging.error(f"Failed to notify admin {ADMIN_ID} of new registration: {e}")
+
+    # Notify log channel
+    await log_to_channel(
+        callback.bot,
+        f"🟢 <b>New User Registered</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 <b>Name:</b> {name}\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+        f"🔗 <b>Username:</b> {username or 'No username'}\n"
+        f"📅 <b>Date:</b> {datetime.now(timezone.utc).strftime('%b %d, %Y, %I:%M %p UTC')}"
+    )
 
     await callback.answer()
 
