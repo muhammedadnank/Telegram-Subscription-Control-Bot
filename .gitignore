@@ -4,4 +4,6 @@
 *.log
 verify_phase_1.py
 verify_phase_2.py
+test_real_db.py
+
 
