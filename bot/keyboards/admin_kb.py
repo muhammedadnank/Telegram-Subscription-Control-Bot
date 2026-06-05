@@ -49,7 +49,9 @@ def user_quick_kb(user_id: int) -> InlineKeyboardMarkup:
     ])
 
 
-def profile_kb(user_id: int) -> InlineKeyboardMarkup:
+def profile_kb(user_id: int, is_banned: bool = False) -> InlineKeyboardMarkup:
+    ban_text = "🟢 Unban User" if is_banned else "🚫 Ban User"
+    ban_callback = f"unban_{user_id}" if is_banned else f"ban_{user_id}"
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🎓 Give Access", callback_data=f"give_{user_id}"),
@@ -57,7 +59,7 @@ def profile_kb(user_id: int) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="❌ Kick All",    callback_data=f"kickall_{user_id}"),
-            InlineKeyboardButton(text="🚫 Ban User",    callback_data=f"ban_{user_id}")
+            InlineKeyboardButton(text=ban_text,        callback_data=ban_callback)
         ],
         [InlineKeyboardButton(text="🔙 Back",           callback_data="admin_users")]
     ])
@@ -100,3 +102,98 @@ def confirm_give_kb(user_id: int, course_id: str) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="❌ Cancel",  callback_data=f"give_{user_id}")
         ]
     ])
+
+
+def courses_menu_kb(courses: list[dict]) -> InlineKeyboardMarkup:
+    rows = []
+    for c in courses:
+        status_icon = "🟢" if c.get("is_active", True) else "🔴"
+        rows.append([
+            InlineKeyboardButton(text=f"{status_icon} {c['name']} (₹{c['price']})", callback_data=f"course_detail_{str(c['_id'])}"),
+            InlineKeyboardButton(
+                text="🔴 Disable" if c.get("is_active", True) else "🟢 Enable",
+                callback_data=f"course_toggle_{str(c['_id'])}"
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="➕ Add Course", callback_data="admin_add_course")])
+    rows.append([InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def course_detail_kb(course_id: str, is_active: bool) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✏️ Edit Name", callback_data=f"course_edit_name_{course_id}"),
+            InlineKeyboardButton(text="✏️ Edit Price", callback_data=f"course_edit_price_{course_id}")
+        ],
+        [
+            InlineKeyboardButton(text="📸 Edit Photo", callback_data=f"course_edit_photo_{course_id}"),
+            InlineKeyboardButton(
+                text="🔴 Disable" if is_active else "🟢 Enable",
+                callback_data=f"course_toggle_{course_id}"
+            )
+        ],
+        [InlineKeyboardButton(text="🔙 Back", callback_data="admin_courses")]
+    ])
+
+
+def confirm_kb(confirm_data: str, cancel_data: str) -> InlineKeyboardMarkup:
+    """Generic confirm/cancel keyboard."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Confirm", callback_data=confirm_data),
+            InlineKeyboardButton(text="❌ Cancel",  callback_data=cancel_data)
+        ]
+    ])
+
+
+def skip_kb(callback_data: str = "skip") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏭ Skip", callback_data=callback_data)]
+    ])
+
+
+def settings_kb(settings: dict) -> InlineKeyboardMarkup:
+    expiry_hours = settings.get("invite_link_expiry_hours", 2)
+    warning_hours = ", ".join(map(str, settings.get("warning_hours", [48, 12])))
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"⏳ Invite Link Expiry ({expiry_hours}h)", callback_data="settings_expiry")],
+        [InlineKeyboardButton(text=f"🔔 Warning Hours ({warning_hours}h)", callback_data="settings_warnings")],
+        [InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")]
+    ])
+
+
+def broadcast_target_kb(courses: list[dict]) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text="📢 All Users", callback_data="broadcast_target_all")]
+    ]
+    for c in courses:
+        rows.append([InlineKeyboardButton(text=f"📚 Course: {c['name']}", callback_data=f"broadcast_target_course_{str(c['_id'])}")])
+    rows.append([InlineKeyboardButton(text="👤 Direct User ID", callback_data="broadcast_target_user")])
+    rows.append([InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def report_kb(year: int, month: int) -> InlineKeyboardMarkup:
+    # Previous month
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    
+    # Next month
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+    
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="◀️ Prev", callback_data=f"report_{prev_year}_{prev_month}"),
+            InlineKeyboardButton(text=f"📅 {months[month-1]} {year}", callback_data="noop"),
+            InlineKeyboardButton(text="Next ▶️", callback_data=f"report_{next_year}_{next_month}")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")
+        ]
+    ])
+
+

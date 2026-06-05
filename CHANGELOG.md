@@ -75,6 +75,42 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.6.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 6 (Scheduler Warning Reminders, Expired Kicks, Pending Join Cleanup)**:
+  - Created background scheduler tasks in `bot/scheduler/tasks.py` to check for approaching subscription expirations.
+  - Implemented 48h and 12h warning notification DMs to users and warning alerts to the admin channel.
+  - Added automated subscription expiration kicks that ban and immediately unban users from Telegram channels, revoke invite links, and notify users and admins.
+  - Added cleanup logic to mark unused, stale invite links as expired after threshold.
+  - Created mock verification script `verify_phase_6.py` to validate all scheduler tasks and triggers.
+
+---
+
+## [0.7.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 7 & 8 (Course CRUD & Dynamic Keyboard Configuration)**:
+  - Developed course list menu with pagination and custom detail view showing price, duration, and status toggle.
+  - Created Add Course FSM flow supporting step-by-step input for name, photo file ID, valid Telegram channel verification, price, and final details confirmation.
+  - Added Edit Course workflows to dynamically edit name, price, and upload/remove course photos from the admin interface.
+  - Implemented mock verification script `verify_phase_7_8.py` to cover all course CRUD states and validation logic.
+
+---
+
+## [0.8.0] — 2026-06-05
+
+### Added
+- Implemented **Phase 9 (Reports, Settings, Search, User controls, and Broadcast)**:
+  - Added Monthly Revenue Reports with course-wise breakdown, separating new sales from renewals via custom MongoDB aggregation queries.
+  - Added Search users feature with partial case-insensitive query matching on name and usernames, yielding interactive profile shortcuts.
+  - Integrated Settings panel to update warning hours and invite link expiry durations dynamically.
+  - Implemented administrative user management controls (Ban, Unban, and Kick All) with safety confirmation prompts and dynamic inline keyboard updates.
+  - Developed Global Broadcast module targeting all active subscribers, individual courses, or direct single-user DMs supporting text, photo, video, and document formats.
+  - Verified all operations using `verify_phase_9.py` mock testing script.
+
+---
+
 ## [1.0.0] — Unreleased (In Development)
 
 ### Added
