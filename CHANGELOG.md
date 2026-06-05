@@ -111,6 +111,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.8.1] — 2026-06-05
+
+### Fixed
+- Resolved a critical `TypeError` when invoking `/admin` and other commands wrapped with `@admin_only`. The decorator now dynamically filters out unexpected keyword arguments (such as `dispatcher`) passed by aiogram's dispatcher.
+
+---
+
 ## [1.0.0] — Unreleased (In Development)
 
 ### Added
