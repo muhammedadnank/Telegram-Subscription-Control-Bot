@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 
 from config import ADMIN_ID
 from database import users as users_db, subscriptions as subs_db, courses as courses_db
-from keyboards.user_kb import register_kb, home_kb
+from keyboards.user_kb import register_kb, home_kb, status_back_kb
 
 router = Router()
 
@@ -113,6 +113,178 @@ async def cb_register(callback: CallbackQuery):
     except Exception as e:
         logging.error(f"Failed to notify admin {ADMIN_ID} of new registration: {e}")
 
+    await callback.answer()
+
+
+@router.callback_query(F.data == "user_status")
+async def cb_user_status(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
+    history = await subs_db.get_subscription_history(user_id)
+    
+    if not active_subs:
+        await callback.answer("No active subscriptions found.", show_alert=True)
+        return
+        
+    lines = ["📊 <b>My Subscriptions</b>\n"]
+    for sub in active_subs:
+        course = await courses_db.get_course(str(sub["course_id"]))
+        if course:
+            joined_str = sub["joined_at"].strftime("%b %d, %Y") if sub.get("joined_at") else "N/A"
+            expires_str = sub["expires_at"].strftime("%b %d, %Y") if sub.get("expires_at") else "N/A"
+            days_left = 0
+            if sub.get("expires_at"):
+                days_left = max(0, (sub["expires_at"] - datetime.now(timezone.utc)).days)
+            lines.append(
+                f"📚 <b>{course['name']}</b>\n"
+                f"   Status: 🟢 Active\n"
+                f"   Joined: {joined_str}\n"
+                f"   Expires: {expires_str}\n"
+                f"   ⏳ {days_left} days remaining\n"
+                f"   💰 ₹{sub.get('amount_paid', 0)}\n"
+            )
+            
+    total_paid = sum(sub.get("amount_paid", 0) for sub in history)
+    lines.append("──────────────────")
+    lines.append(f"💰 <b>Total Paid:</b> ₹{total_paid:,}")
+    
+    await callback.message.edit_text(
+        "\n".join(lines),
+        reply_markup=status_back_kb()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "user_refresh")
+async def cb_user_refresh(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    user = await users_db.get_user(user_id)
+    if not user:
+        await callback.answer("User not found.", show_alert=True)
+        return
+        
+    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
+    history = await subs_db.get_subscription_history(user_id)
+    has_history = len(history) > 0
+    
+    if not active_subs:
+        text = (
+            f"👋 <b>Welcome back, {user['name']}!</b>\n\n"
+            "📚 No active courses.\n\n"
+            "Contact admin to get course access."
+        )
+    else:
+        lines = []
+        for sub in active_subs:
+            course = await courses_db.get_course(str(sub["course_id"]))
+            if course:
+                days_left = max(0, (sub["expires_at"] - datetime.now(timezone.utc)).days) if sub.get("expires_at") else 0
+                lines.append(f"• <b>{course['name']}</b> — {days_left} days left")
+        course_text = "\n".join(lines)
+        text = (
+            f"👋 <b>Welcome back, {user['name']}!</b>\n\n"
+            f"📚 <b>Active Courses:</b>\n{course_text}\n\n"
+            f"📋 Total Subscriptions: {len(active_subs)}"
+        )
+        
+    try:
+        await callback.message.edit_text(text, reply_markup=home_kb(has_history=has_history))
+        await callback.answer("Refreshed!")
+    except Exception:
+        await callback.answer("Already up-to-date.")
+
+
+@router.callback_query(F.data == "user_history")
+async def cb_user_history(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    history = await subs_db.get_subscription_history(user_id)
+    
+    if not history:
+        await callback.answer("No subscription history found.", show_alert=True)
+        return
+        
+    lines = ["📋 <b>My History</b>\n"]
+    for idx, sub in enumerate(history, 1):
+        course = await courses_db.get_course(str(sub["course_id"]))
+        if course:
+            course_name = course["name"]
+            amount = sub.get("amount_paid", 0)
+            status = sub.get("status", "unknown").capitalize()
+            
+            # Formatting status emoji
+            status_emoji = "⏳"
+            if sub.get("status") == "active":
+                status_emoji = "🟢"
+            elif sub.get("status") == "expired":
+                status_emoji = "❌"
+            elif sub.get("status") == "kicked":
+                status_emoji = "🚫"
+            elif sub.get("status") == "pending_join":
+                status_emoji = "⏳"
+                
+            date_range = "N/A"
+            if sub.get("joined_at") and sub.get("expires_at"):
+                start_str = sub["joined_at"].strftime("%b %d")
+                end_str = sub["expires_at"].strftime("%b %d, %Y")
+                date_range = f"{start_str} – {end_str}"
+            elif sub.get("created_at"):
+                date_range = sub["created_at"].strftime("%b %d, %Y")
+                
+            renewal_tag = " · 🔄 Renewal" if sub.get("is_renewal") else ""
+            
+            lines.append(
+                f"{idx}. <b>{course_name}</b>\n"
+                f"   {date_range}\n"
+                f"   💰 ₹{amount} · {status_emoji} {status}{renewal_tag}\n"
+            )
+            
+    total_paid = sum(sub.get("amount_paid", 0) for sub in history)
+    lines.append("──────────────────")
+    lines.append(f"💰 <b>Total Paid:</b> ₹{total_paid:,}")
+    
+    await callback.message.edit_text(
+        "\n".join(lines),
+        reply_markup=status_back_kb()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "user_home")
+async def cb_user_home(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    user = await users_db.get_user(user_id)
+    if not user:
+        await callback.answer("User not found.", show_alert=True)
+        return
+        
+    active_subs = await subs_db.get_active_subscriptions_for_user(user_id)
+    history = await subs_db.get_subscription_history(user_id)
+    has_history = len(history) > 0
+    
+    if not active_subs:
+        text = (
+            f"👋 <b>Welcome back, {user['name']}!</b>\n\n"
+            "📚 No active courses.\n\n"
+            "Contact admin to get course access."
+        )
+    else:
+        lines = []
+        for sub in active_subs:
+            course = await courses_db.get_course(str(sub["course_id"]))
+            if course:
+                days_left = max(0, (sub["expires_at"] - datetime.now(timezone.utc)).days) if sub.get("expires_at") else 0
+                lines.append(f"• <b>{course['name']}</b> — {days_left} days left")
+        course_text = "\n".join(lines)
+        text = (
+            f"👋 <b>Welcome back, {user['name']}!</b>\n\n"
+            f"📚 <b>Active Courses:</b>\n{course_text}\n\n"
+            f"📋 Total Subscriptions: {len(active_subs)}"
+        )
+        
+    try:
+        await callback.message.edit_text(text, reply_markup=home_kb(has_history=has_history))
+    except Exception:
+        pass
     await callback.answer()
 
 
